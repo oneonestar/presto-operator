@@ -1,0 +1,73 @@
+@startuml
+
+interface Indexer
+interface Store {
+	Add(obj interface{}) error
+	Update(obj interface{}) error
+	Delete(obj interface{}) error
+	List() []interface{}
+	ListKeys() []string
+	Get(obj interface{}) (item interface{}, exists bool, err error)
+	GetByKey(key string) (item interface{}, exists bool, err error)
+	Replace([]interface{}, string) error
+	Resync() error
+}
+
+interface ThreadSafeStore {
+	Add(key string, obj interface{})
+	Update(key string, obj interface{})
+	Delete(key string)
+	Get(key string) (item interface{}, exists bool)
+	List() []interface{}
+	ListKeys() []string
+	Replace(map[string]interface{}, string)
+	Index(indexName string, obj interface{}) ([]interface{}, error)
+	IndexKeys(indexName, indexKey string) ([]string, error)
+	ListIndexFuncValues(name string) []string
+	ByIndex(indexName, indexKey string) ([]interface{}, error)
+	GetIndexers() Indexers
+
+	// AddIndexers adds more indexers to this store.  If you call this after you already have data
+	// in the store, the results are undefined.
+	AddIndexers(newIndexers Indexers) error
+	Resync() error
+}
+interface KeyFunc {
+  func(obj interface{}) : (string, error)
+}
+
+Store <|-- Indexer
+
+Indexer <|-- cache
+ThreadSafeStore <|-- cache
+KeyFunc <|-- cache
+
+class cache {
+	cacheStorage ThreadSafeStore
+	// keyFunc is used to make the key for objects stored in and retrieved from items, and
+	// should be deterministic.
+	keyFunc KeyFunc
+	Add(obj interface{}) error
+	Update(obj interface{}) error
+    Delete(obj interface{}) error
+    List() []interface{}
+    ListKeys() []string
+    GetIndexers() Indexers
+    Index(indexName string, obj interface{}) ([]interface{}, error)
+    IndexKeys(indexName, indexKey string) ([]string, error)
+    ListIndexFuncValues(indexName string) []string
+    ByIndex(indexName, indexKey string) ([]interface{}, error)
+    AddIndexers(newIndexers Indexers) error
+    Get(obj interface{}) (item interface{}, exists bool, err error)
+    GetByKey(key string) (item interface{}, exists bool, err error)
+    Replace(list []interface{}, resourceVersion string) error
+    Resync() error
+}
+class MetaNamespaceKeyFunc
+class MetaNamespaceIndexFunc
+
+
+KeyFunc <|-- MetaNamespaceKeyFunc
+KeyFunc <|-- MetaNamespaceIndexFunc
+
+@enduml

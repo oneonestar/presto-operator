@@ -1,0 +1,59 @@
+apiVersion: prestocontroller.prestodb.io/v1alpha1
+kind: Presto
+metadata:
+  name: presto-cluster
+spec:
+  deploymentName: presto-cluster
+  replicas: 1
+
+# $kubectl get presto.prestocontroller.prestodb.io/presto-cluster  -o=json
+#{
+#  "apiVersion": "prestocontroller.prestodb.io/v1alpha1",
+#  "kind": "Presto",
+#  "metadata": {
+#    "creationTimestamp": "2019-01-02T12:27:09Z",
+#    "generation": 1,
+#    "name": "presto-cluster",
+#    "namespace": "default",
+#    "resourceVersion": "2456234",
+#    "selfLink": "/apis/prestocontroller.prestodb.io/v1alpha1/namespaces/default/prestos/presto-cluster",
+#    "uid": "b9a88051-0e89-11e9-96f3-fa163ef7f3b9"
+#  },
+#  "spec": {
+#    "deploymentName": "presto-cluster",
+#    "replicas": 1
+#  }
+#}
+
+# glog.Infof("%+v\n",foo) in syncHandler()
+# &{
+#  TypeMeta:{
+#    Kind:Presto
+#    APIVersion:prestocontroller.prestodb.io/v1alpha1
+#  }
+#  ObjectMeta:{
+#    Name:presto-cluster
+#    GenerateName:
+#    Namespace:default
+#    SelfLink:/apis/prestocontroller.prestodb.io/v1alpha1/namespaces/default/prestos/presto-cluster
+#    UID:b9a88051-0e89-11e9-96f3-fa163ef7f3b9
+#    ResourceVersion:2456234
+#    Generation:1
+#    CreationTimestamp:2019-01-02 21:27:09 +0900 JST
+#    DeletionTimestamp:<nil>
+#    DeletionGracePeriodSeconds:<nil>
+#    Labels:map[]
+#    Annotations:map[]
+#    OwnerReferences:[]
+#    Initializers:nil
+#    Finalizers:[]
+#    ClusterName:
+#  }
+#  Spec:{
+#    DeploymentName:presto-cluster
+#    Replicas:0xc4204c54e4
+#  }
+#  Status:{
+#    AvailableReplicas:0
+#  }
+}
