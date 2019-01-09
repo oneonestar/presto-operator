@@ -1,7 +1,7 @@
 ############################
 # STEP 1 build executable binary
 ############################
-FROM golang:stretch AS builder
+FROM golang:stretch
 
 # Install git.
 # Git is required for fetching the dependencies.
