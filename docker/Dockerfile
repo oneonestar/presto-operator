@@ -4,9 +4,6 @@
 FROM golang:stretch
 
 
-# Fetch dependencies.
-# Using go get.
-RUN dep ensure -v
 
 # Install jsonnet
 RUN go get github.com/fatih/color \
@@ -28,6 +25,9 @@ RUN go get github.com/fatih/color \
 #
 
 
+# Fetch dependencies.
+# Using go get.
+#RUN dep ensure -v
 
 ############################
 # STEP 2 build a small image
