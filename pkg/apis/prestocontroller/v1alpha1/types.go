@@ -8,7 +8,7 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Foo is a specification for a Foo resource
+// Presto is a specification for a Presto resource
 type Presto struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -17,20 +17,20 @@ type Presto struct {
 	Status PrestoStatus `json:"status"`
 }
 
-// FooSpec is the spec for a Foo resource
+// PrestoSpec is the spec for a Presto resource
 type PrestoSpec struct {
-	DeploymentName string `json:"deploymentName"`
-	Replicas       *int32 `json:"replicas"`
+	ClusterName string `json:"clusterName"`
+	Replicas    *int32 `json:"replicas"`
 }
 
-// PrestoStatus is the status for a Foo resource
+// PrestoStatus is the status for a Presto resource
 type PrestoStatus struct {
 	AvailableReplicas int32 `json:"availableReplicas"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// FooList is a list of Foo resources
+// PrestoList is a list of Presto resources
 type PrestoList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`

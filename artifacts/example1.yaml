@@ -1,9 +1,9 @@
-apiVersion: prestocontroller.prestodb.io/v1alpha1
+apiVersion: prestocontroller.prestosql.io/v1alpha1
 kind: Presto
 metadata:
   name: presto-cluster
 spec:
-  deploymentName: presto-cluster
+  clusterName: star-new-presto-cluster
   replicas: 1
 
 # $kubectl get presto.prestocontroller.prestodb.io/presto-cluster  -o=json
@@ -56,4 +56,4 @@ spec:
 #  Status:{
 #    AvailableReplicas:0
 #  }
-}
+#}

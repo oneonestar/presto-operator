@@ -34,9 +34,9 @@ type FakePrestos struct {
 	ns   string
 }
 
-var prestosResource = schema.GroupVersionResource{Group: "prestocontroller.prestodb.io", Version: "v1alpha1", Resource: "prestos"}
+var prestosResource = schema.GroupVersionResource{Group: "prestocontroller.prestosql.io", Version: "v1alpha1", Resource: "prestos"}
 
-var prestosKind = schema.GroupVersionKind{Group: "prestocontroller.prestodb.io", Version: "v1alpha1", Kind: "Presto"}
+var prestosKind = schema.GroupVersionKind{Group: "prestocontroller.prestosql.io", Version: "v1alpha1", Kind: "Presto"}
 
 // Get takes name of the presto, and returns the corresponding presto object, and an error if there is any.
 func (c *FakePrestos) Get(name string, options v1.GetOptions) (result *v1alpha1.Presto, err error) {

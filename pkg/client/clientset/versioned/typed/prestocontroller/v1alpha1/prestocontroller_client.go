@@ -30,7 +30,7 @@ type PrestocontrollerV1alpha1Interface interface {
 	PrestosGetter
 }
 
-// PrestocontrollerV1alpha1Client is used to interact with features provided by the prestocontroller.prestodb.io group.
+// PrestocontrollerV1alpha1Client is used to interact with features provided by the prestocontroller.prestosql.io group.
 type PrestocontrollerV1alpha1Client struct {
 	restClient rest.Interface
 }
