@@ -16,8 +16,6 @@ spec:
         - name: presto-coordinator
           image: gcr.io/learn-227713/presto:latest
           imagePullPolicy: Always
-#          command: [ "/bin/bash", "-c", "--" ]
-#          args: [ "while true; do sleep 30; done;" ]
           ports:
             - containerPort: 8080
           env:

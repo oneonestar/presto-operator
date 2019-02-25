@@ -19,37 +19,39 @@ package main
 import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"time"
 
 	"github.com/golang/glog"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	prestov1alpha1 "github.com/oneonestar/presto-controller/pkg/apis/prestocontroller/v1alpha1"
 	clientset "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned"
 	prestoscheme "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/scheme"
 	informers "github.com/oneonestar/presto-controller/pkg/client/informers/externalversions/prestocontroller/v1alpha1"
 	listers "github.com/oneonestar/presto-controller/pkg/client/listers/prestocontroller/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	. "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/runtime"
 
-	//"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 )
 
-const controllerAgentName = "sample-controller"
+const controllerAgentName = "presto-controller"
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
@@ -66,7 +68,7 @@ const (
 	MessageResourceSynced = "Foo synced successfully"
 )
 
-// Controller is the controller implementation for Foo resources
+// Controller is the controller implementation for Presto resources
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
@@ -75,6 +77,8 @@ type Controller struct {
 
 	replicaSetLister  appslisters.ReplicaSetLister
 	replicaSetsSynced cache.InformerSynced
+	serviceLister     corev1listers.ServiceLister
+	serviceSynced     cache.InformerSynced
 	prestoLister      listers.PrestoLister
 	prestoSynced      cache.InformerSynced
 
@@ -94,6 +98,7 @@ func NewController(
 	kubeclientset kubernetes.Interface,
 	prestoclientset clientset.Interface,
 	replicaSetInformer appsinformers.ReplicaSetInformer,
+	serviceInformer corev1informers.ServiceInformer,
 	prestoInformer informers.PrestoInformer) *Controller {
 
 	// Create event broadcaster
@@ -104,13 +109,15 @@ func NewController(
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, EventSource{Component: controllerAgentName})
 
 	controller := &Controller{
 		kubeclientset:     kubeclientset,
 		prestoclientset:   prestoclientset,
 		replicaSetLister:  replicaSetInformer.Lister(),
 		replicaSetsSynced: replicaSetInformer.Informer().HasSynced,
+		serviceLister:     serviceInformer.Lister(),
+		serviceSynced:     serviceInformer.Informer().HasSynced,
 		prestoLister:      prestoInformer.Lister(),
 		prestoSynced:      prestoInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Foos"),
@@ -162,7 +169,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.replicaSetsSynced, c.prestoSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.replicaSetsSynced, c.serviceSynced, c.prestoSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -254,7 +261,7 @@ func (c *Controller) syncHandler(key string) error {
 	// Get the Presto resource with this namespace/name
 	presto, err := c.prestoLister.Prestos(namespace).Get(name)
 	if err != nil {
-		// The Foo resource may no longer exist, in which case we stop
+		// The Presto resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("presto '%s' in work queue no longer exists", key))
@@ -273,56 +280,72 @@ func (c *Controller) syncHandler(key string) error {
 		return nil
 	}
 
-	// Get the replicaSet with the name specified in Foo.spec
-	replicaSet, err := c.getReplicaSets(presto)
-	// If the resource doesn't exist, we'll create it
-	if errors.IsNotFound(err) {
-		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Create(newReplicaSet(presto))
-	}
-
-	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later. This could have been caused by a
-	// temporary network failure, or any other transient reason.
+	_, err = c.createOrUpdateCoordinatorReplicaSet(presto)
 	if err != nil {
 		return err
 	}
 
-	// If the ReplicaSet is not controlled by this Presto resource, we should log
-	// a warning to the event recorder and ret
-	if !metav1.IsControlledBy(replicaSet, presto) {
-		msg := fmt.Sprintf(MessageResourceExists, replicaSet.Name)
-		c.recorder.Event(presto, corev1.EventTypeWarning, ErrResourceExists, msg)
-		return fmt.Errorf(msg)
+	workerReplicaSet, err := c.createOrUpdateWorkerReplicaSet(presto)
+	if err != nil {
+		return err
 	}
 
-	// If this number of the replicas on the Presto resource is specified, and the
-	// number does not equal the current desired replicas on the ReplicaSet, we
-	// should update the ReplicaSet resource.
-	if presto.Spec.Replicas != nil && *presto.Spec.Replicas != *replicaSet.Spec.Replicas {
-		klog.V(4).Infof("Foo %s replicas: %d, replicaSet replicas: %d", name, *presto.Spec.Replicas, *replicaSet.Spec.Replicas)
-		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Update(newReplicaSet(presto))
-	}
-
-	// If an error occurs during Update, we'll requeue the item so we can
-	// attempt processing again later. THis could have been caused by a
-	// temporary network failure, or any other transient reason.
+	_, err = c.createOrUpdateCoordinatorService(presto)
 	if err != nil {
 		return err
 	}
 
 	// Finally, we update the status block of the Presto resource to reflect the
 	// current state of the world
-	err = c.updatePrestoStatus(presto, replicaSet)
+	err = c.updatePrestoStatus(presto, workerReplicaSet)
 	if err != nil {
 		return err
 	}
 
-	c.recorder.Event(presto, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	c.recorder.Event(presto, EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }
 
-func (c *Controller) getReplicaSets(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
-	replicaSets, err := c.replicaSetLister.ReplicaSets(presto.Namespace).List(labels.Everything())
+func (c *Controller) getCoordinatorReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{
+		"app":        "presto-coordinator",
+		"controller": presto.Name,
+	}))
+	replicaSets, err := c.replicaSetLister.ReplicaSets(presto.Namespace).List(selector)
+	if err != nil {
+		return nil, err
+	}
+	for _, replicaSet := range replicaSets {
+		if metav1.IsControlledBy(replicaSet, presto) {
+			return replicaSet, nil
+		}
+	}
+	return nil, errors.NewNotFound(appsv1.Resource("replicasets"), "")
+}
+
+func (c *Controller) getCoordinatorService(presto *prestov1alpha1.Presto) (*Service, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{
+		"app":        "presto-coordinator-service",
+		"controller": presto.Name,
+	}))
+	replicaSets, err := c.serviceLister.Services(presto.Namespace).List(selector)
+	if err != nil {
+		return nil, err
+	}
+	for _, replicaSet := range replicaSets {
+		if metav1.IsControlledBy(replicaSet, presto) {
+			return replicaSet, nil
+		}
+	}
+	return nil, errors.NewNotFound(appsv1.Resource("replicasets"), "")
+}
+
+func (c *Controller) getWorkerReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
+	selector := labels.SelectorFromSet(labels.Set(map[string]string{
+		"app":        "presto-worker",
+		"controller": presto.Name,
+	}))
+	replicaSets, err := c.replicaSetLister.ReplicaSets(presto.Namespace).List(selector)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +364,7 @@ func (c *Controller) updatePrestoStatus(presto *prestov1alpha1.Presto, replicaSe
 	prestoCopy := presto.DeepCopy()
 	prestoCopy.Status.AvailableReplicas = replicaSet.Status.AvailableReplicas
 	// If the CustomResourceSubresources feature gate is not enabled,
-	// we must use Update instead of UpdateStatus to update the Status block of the Foo resource.
+	// we must use Update instead of UpdateStatus to update the Status block of the Presto resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
 	_, err := c.prestoclientset.PrestocontrollerV1alpha1().Prestos(presto.Namespace).Update(prestoCopy)
@@ -401,17 +424,89 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 }
 
+func (c *Controller) createOrUpdateCoordinatorReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
+	// Get the replicaSet with the name specified in Foo.spec
+	replicaSet, err := c.getCoordinatorReplicaSet(presto)
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Create(newReplicaSetCoordinator(presto))
+		// If an error occurs during Get/Create, we'll requeue the item so we can
+		// attempt processing again later. This could have been caused by a
+		// temporary network failure, or any other transient reason.
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return replicaSet, nil
+}
+
+
+func (c *Controller) createOrUpdateCoordinatorService(presto *prestov1alpha1.Presto) (*Service, error) {
+	service, err := c.getCoordinatorService(presto)
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		service, err = c.kubeclientset.CoreV1().Services(presto.Namespace).Create(newService(presto))
+		// If an error occurs during Get/Create, we'll requeue the item so we can
+		// attempt processing again later. This could have been caused by a
+		// temporary network failure, or any other transient reason.
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return service, nil
+}
+
+func (c *Controller) createOrUpdateWorkerReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
+	// Get the replicaSet with the name specified in Foo.spec
+	replicaSet, err := c.getWorkerReplicaSet(presto)
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Create(newReplicaSetWorker(presto))
+		// If an error occurs during Get/Create, we'll requeue the item so we can
+		// attempt processing again later. This could have been caused by a
+		// temporary network failure, or any other transient reason.
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// If this number of the replicas on the Presto resource is specified, and the
+	// number does not equal the current desired replicas on the ReplicaSet, we
+	// should update the ReplicaSet resource.
+	if presto.Spec.Replicas != nil && *presto.Spec.Replicas != *replicaSet.Spec.Replicas {
+		klog.V(4).Infof("Presto %s replicas: %d, replicaSet replicas: %d", presto.Name, *replicaSet.Spec.Replicas, *replicaSet.Spec.Replicas)
+		worker := replicaSet.DeepCopy()
+		worker.Name = replicaSet.Name
+		worker.Spec.Replicas = presto.Spec.Replicas
+		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Update(worker)
+	}
+
+	// If an error occurs during Update, we'll requeue the item so we can
+	// attempt processing again later. THis could have been caused by a
+	// temporary network failure, or any other transient reason.
+	if err != nil {
+		return nil, err
+	}
+	return replicaSet, nil
+}
+
 // newDeployment creates a new Deployment for a Foo resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Foo resource that 'owns' it.
-func newReplicaSet(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
+func newReplicaSetCoordinator(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 	labels := map[string]string{
-		"app":        "nginx",
+		"app":        "presto-coordinator",
 		"controller": presto.Name,
 	}
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: getPodsPrefix(presto.Spec.ClusterName),
+			GenerateName: getPodsPrefix(presto.Spec.ClusterName + "-coordinator"),
 			Namespace:    presto.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(presto, schema.GroupVersionKind{
@@ -420,23 +515,157 @@ func newReplicaSet(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 					Kind:    "Presto",
 				}),
 			},
+			Labels: labels,
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: func() *int32 { i := int32(1); return &i }(),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: PodSpec{
+					Containers: []Container{
+						{
+							Name:            "presto-coordinator",
+							Image:           "gcr.io/learn-227713/presto:latest",
+							ImagePullPolicy: PullAlways,
+							Ports:           []ContainerPort{{ContainerPort: 8080}},
+							Env: []EnvVar{
+								{Name: "DISCOVERY_URL", Value: "http://debug:8080"},
+							},
+							VolumeMounts: []VolumeMount{
+								{Name: "config", MountPath: "/init/config"},
+								{Name: "catalog", MountPath: "/init/config/catalog"},
+							},
+						},
+					},
+					Volumes: []Volume{
+						{
+							Name: "config",
+							VolumeSource: VolumeSource{
+								ConfigMap: &ConfigMapVolumeSource{
+									LocalObjectReference: LocalObjectReference{
+										Name: presto.Spec.CoordinatorConfig,
+									},
+								},
+							},
+						},
+						{
+							Name: "catalog",
+							VolumeSource: VolumeSource{
+								ConfigMap: &ConfigMapVolumeSource{
+									LocalObjectReference: LocalObjectReference{
+										Name: presto.Spec.CatalogConfig,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newReplicaSetWorker(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
+	labels := map[string]string{
+		"app":        "presto-worker",
+		"controller": presto.Name,
+	}
+	return &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: getPodsPrefix(presto.Spec.ClusterName + "-worker"),
+			Namespace:    presto.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(presto, schema.GroupVersionKind{
+					Group:   prestov1alpha1.SchemeGroupVersion.Group,
+					Version: prestov1alpha1.SchemeGroupVersion.Version,
+					Kind:    "Presto",
+				}),
+			},
+			Labels: labels,
 		},
 		Spec: appsv1.ReplicaSetSpec{
 			Replicas: presto.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: corev1.PodTemplateSpec{
+			Template: PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
+				Spec: PodSpec{
+					Containers: []Container{
 						{
-							Name:  "nginx",
-							Image: "nginx:latest",
+							Name:            "presto-worker",
+							Image:           "gcr.io/learn-227713/presto:latest",
+							ImagePullPolicy: PullAlways,
+							Ports:           []ContainerPort{{ContainerPort: 8080}},
+							Env: []EnvVar{
+								{Name: "DISCOVERY_URL", Value: "http://debug:8080"},
+							},
+							VolumeMounts: []VolumeMount{
+								{Name: "config", MountPath: "/init/config"},
+								{Name: "catalog", MountPath: "/init/config/catalog"},
+							},
 						},
 					},
+					Volumes: []Volume{
+						{
+							Name: "config",
+							VolumeSource: VolumeSource{
+								ConfigMap: &ConfigMapVolumeSource{
+									LocalObjectReference: LocalObjectReference{
+										Name: presto.Spec.CoordinatorConfig,
+									},
+								},
+							},
+						},
+						{
+							Name: "catalog",
+							VolumeSource: VolumeSource{
+								ConfigMap: &ConfigMapVolumeSource{
+									LocalObjectReference: LocalObjectReference{
+										Name: presto.Spec.CatalogConfig,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newService(presto *prestov1alpha1.Presto) *Service {
+	labels := map[string]string{
+		"app":        "presto-coordinator-service",
+		"controller": presto.Name,
+	}
+	return &Service{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: getPodsPrefix(presto.Spec.ClusterName + "-service"),
+			Namespace:    presto.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(presto, schema.GroupVersionKind{
+					Group:   prestov1alpha1.SchemeGroupVersion.Group,
+					Version: prestov1alpha1.SchemeGroupVersion.Version,
+					Kind:    "Presto",
+				}),
+			},
+			Labels: labels,
+		},
+		Spec: ServiceSpec{
+			Selector: labels,
+			Ports: []ServicePort{
+				{
+					Protocol:   ProtocolTCP,
+					Port:       8080,
+					TargetPort: intstr.FromInt(8080),
 				},
 			},
 		},

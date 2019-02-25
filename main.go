@@ -47,6 +47,7 @@ func main() {
 
 	controller := NewController(kubeClient, exampleClient,
 		kubeInformerFactory.Apps().V1().ReplicaSets(),
+		kubeInformerFactory.Core().V1().Services(),
 		exampleInformerFactory.Prestocontroller().V1alpha1().Prestos())
 
 	kubeInformerFactory.Start(stopCh)

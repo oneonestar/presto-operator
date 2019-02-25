@@ -19,8 +19,11 @@ type Presto struct {
 
 // PrestoSpec is the spec for a Presto resource
 type PrestoSpec struct {
-	ClusterName string `json:"clusterName"`
-	Replicas    *int32 `json:"replicas"`
+	ClusterName       string `json:"clusterName"`
+	Replicas          *int32 `json:"replicas"`
+	CoordinatorConfig string `json:"coordinatorConfig"`
+	WorkerConfig      string `json:"workerConfig"`
+	CatalogConfig     string `json:"catalogConfig"`
 }
 
 // PrestoStatus is the status for a Presto resource
