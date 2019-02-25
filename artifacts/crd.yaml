@@ -19,3 +19,12 @@ spec:
               type: integer
               minimum: 1
               maximum: 10
+  additionalPrinterColumns:
+    - name: DESIRED
+      type: integer
+      description: The desired replicas of workers
+      JSONPath: .spec.replicas
+    - name: CURRENT
+      type: integer
+      description: The current replicas of workers
+      JSONPath: .status.availableReplicas
