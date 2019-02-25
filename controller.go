@@ -54,18 +54,18 @@ import (
 const controllerAgentName = "presto-controller"
 
 const (
-	// SuccessSynced is used as part of the Event 'reason' when a Foo is synced
+	// SuccessSynced is used as part of the Event 'reason' when a Presto is synced
 	SuccessSynced = "Synced"
-	// ErrResourceExists is used as part of the Event 'reason' when a Foo fails
+	// ErrResourceExists is used as part of the Event 'reason' when a Presto fails
 	// to sync due to a Deployment of the same name already existing.
 	ErrResourceExists = "ErrResourceExists"
 
 	// MessageResourceExists is the message used for Events when a resource
 	// fails to sync due to a Deployment already existing
-	MessageResourceExists = "Resource %q already exists and is not managed by Foo"
-	// MessageResourceSynced is the message used for an Event fired when a Foo
+	MessageResourceExists = "Resource %q already exists and is not managed by Presto"
+	// MessageResourceSynced is the message used for an Event fired when a Presto
 	// is synced successfully
-	MessageResourceSynced = "Foo synced successfully"
+	MessageResourceSynced = "Presto synced successfully"
 )
 
 // Controller is the controller implementation for Presto resources
@@ -120,7 +120,7 @@ func NewController(
 		serviceSynced:     serviceInformer.Informer().HasSynced,
 		prestoLister:      prestoInformer.Lister(),
 		prestoSynced:      prestoInformer.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Foos"),
+		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Prestos"),
 		recorder:          recorder,
 	}
 
@@ -165,7 +165,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting Foo controller")
+	glog.Info("Starting Presto controller")
 
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
@@ -174,7 +174,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 	}
 
 	glog.Info("Starting workers")
-	// Launch two workers to process Foo resources
+	// Launch two workers to process Presto resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
@@ -228,7 +228,7 @@ func (c *Controller) processNextWorkItem() bool {
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
-		// Foo resource to be synced.
+		// Presto resource to be synced.
 		if err := c.syncHandler(key); err != nil {
 			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
 		}
@@ -407,25 +407,25 @@ func (c *Controller) handleObject(obj interface{}) {
 	}
 	glog.V(4).Infof("Processing object: %s", object.GetName())
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
-		// If this object is not owned by a Foo, we should not do anything more
+		// If this object is not owned by a Presto, we should not do anything more
 		// with it.
-		if ownerRef.Kind != "Foo" {
+		if ownerRef.Kind != "Presto" {
 			return
 		}
 
-		foo, err := c.prestoLister.Prestos(object.GetNamespace()).Get(ownerRef.Name)
+		presto, err := c.prestoLister.Prestos(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
-			glog.V(4).Infof("ignoring orphaned object '%s' of foo '%s'", object.GetSelfLink(), ownerRef.Name)
+			glog.V(4).Infof("ignoring orphaned object '%s' of presto '%s'", object.GetSelfLink(), ownerRef.Name)
 			return
 		}
 
-		c.enqueuePresto(foo)
+		c.enqueuePresto(presto)
 		return
 	}
 }
 
 func (c *Controller) createOrUpdateCoordinatorReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
-	// Get the replicaSet with the name specified in Foo.spec
+	// Get the replicaSet with the name specified in Presto.spec
 	replicaSet, err := c.getCoordinatorReplicaSet(presto)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
@@ -463,7 +463,7 @@ func (c *Controller) createOrUpdateCoordinatorService(presto *prestov1alpha1.Pre
 }
 
 func (c *Controller) createOrUpdateWorkerReplicaSet(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
-	// Get the replicaSet with the name specified in Foo.spec
+	// Get the replicaSet with the name specified in Presto.spec
 	replicaSet, err := c.getWorkerReplicaSet(presto)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
@@ -496,9 +496,9 @@ func (c *Controller) createOrUpdateWorkerReplicaSet(presto *prestov1alpha1.Prest
 	return replicaSet, nil
 }
 
-// newDeployment creates a new Deployment for a Foo resource. It also sets
+// creates a new Deployment for a Presto resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
-// the Foo resource that 'owns' it.
+// the Presto resource that 'owns' it.
 func newReplicaSetCoordinator(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 	labels := map[string]string{
 		"app":        "presto-coordinator",
