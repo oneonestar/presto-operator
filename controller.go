@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
+	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"time"
 
 	"github.com/golang/glog"
@@ -28,6 +29,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	prestov1alpha1 "github.com/oneonestar/presto-controller/pkg/apis/prestocontroller/v1alpha1"
+	clientset "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned"
+	prestoscheme "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/scheme"
+	informers "github.com/oneonestar/presto-controller/pkg/client/informers/externalversions/prestocontroller/v1alpha1"
+	listers "github.com/oneonestar/presto-controller/pkg/client/listers/prestocontroller/v1alpha1"
+	"k8s.io/apimachinery/pkg/labels"
+
 	//"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -39,12 +47,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-
-	prestov1alpha1 "github.com/oneonestar/presto-controller/pkg/apis/prestocontroller/v1alpha1"
-	clientset "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned"
-	prestoscheme "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/scheme"
-	informers "github.com/oneonestar/presto-controller/pkg/client/informers/externalversions/prestocontroller/v1alpha1"
-	listers "github.com/oneonestar/presto-controller/pkg/client/listers/prestocontroller/v1alpha1"
 )
 
 const controllerAgentName = "sample-controller"
@@ -272,7 +274,7 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the replicaSet with the name specified in Foo.spec
-	replicaSet, err := c.replicaSetLister.ReplicaSets(presto.Namespace).Get(deploymentName)
+	replicaSet, err := c.getReplicaSets(presto)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
 		replicaSet, err = c.kubeclientset.AppsV1().ReplicaSets(presto.Namespace).Create(newReplicaSet(presto))
@@ -317,6 +319,19 @@ func (c *Controller) syncHandler(key string) error {
 
 	c.recorder.Event(presto, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
+}
+
+func (c *Controller) getReplicaSets(presto *prestov1alpha1.Presto) (*appsv1.ReplicaSet, error) {
+	replicaSets, err := c.replicaSetLister.ReplicaSets(presto.Namespace).List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	for _, replicaSet := range replicaSets {
+		if metav1.IsControlledBy(replicaSet, presto) {
+			return replicaSet, nil
+		}
+	}
+	return nil, errors.NewNotFound(appsv1.Resource("replicasets"), "")
 }
 
 func (c *Controller) updatePrestoStatus(presto *prestov1alpha1.Presto, replicaSet *appsv1.ReplicaSet) error {
@@ -396,8 +411,8 @@ func newReplicaSet(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 	}
 	return &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      presto.Spec.ClusterName,
-			Namespace: presto.Namespace,
+			GenerateName: getPodsPrefix(presto.Spec.ClusterName),
+			Namespace:    presto.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(presto, schema.GroupVersionKind{
 					Group:   prestov1alpha1.SchemeGroupVersion.Group,
@@ -426,4 +441,13 @@ func newReplicaSet(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 			},
 		},
 	}
+}
+
+func getPodsPrefix(controllerName string) string {
+	// use the dash (if the name isn't too long) to make the pod name a bit prettier
+	prefix := fmt.Sprintf("%s-", controllerName)
+	if len(validation.ValidatePodName(prefix, true)) != 0 {
+		prefix = controllerName
+	}
+	return prefix
 }
