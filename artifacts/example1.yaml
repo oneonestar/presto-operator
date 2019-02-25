@@ -4,6 +4,7 @@ metadata:
   name: presto-cluster
 spec:
   clusterName: star-presto
+  image: "gcr.io/learn-227713/presto:latest"
   replicas: 2
   coordinatorConfig: coordinator-config
   workerConfig: worker-config

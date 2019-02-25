@@ -20,6 +20,7 @@ type Presto struct {
 // PrestoSpec is the spec for a Presto resource
 type PrestoSpec struct {
 	ClusterName       string `json:"clusterName"`
+	Image       	  string `json:"image"`
 	Replicas          *int32 `json:"replicas"`
 	CoordinatorConfig string `json:"coordinatorConfig"`
 	WorkerConfig      string `json:"workerConfig"`

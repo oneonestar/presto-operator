@@ -530,7 +530,7 @@ func newReplicaSetCoordinator(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet 
 					Containers: []Container{
 						{
 							Name:            "presto-coordinator",
-							Image:           "gcr.io/learn-227713/presto:latest",
+							Image:           presto.Spec.Image,
 							ImagePullPolicy: PullAlways,
 							Ports:           []ContainerPort{{ContainerPort: 8080}},
 							Env: []EnvVar{
@@ -601,7 +601,7 @@ func newReplicaSetWorker(presto *prestov1alpha1.Presto) *appsv1.ReplicaSet {
 					Containers: []Container{
 						{
 							Name:            "presto-worker",
-							Image:           "gcr.io/learn-227713/presto:latest",
+							Image:           presto.Spec.Image,
 							ImagePullPolicy: PullAlways,
 							Ports:           []ContainerPort{{ContainerPort: 8080}},
 							Env: []EnvVar{
