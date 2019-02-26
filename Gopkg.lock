@@ -348,15 +348,18 @@
   revision = "173ce66c1e39d1d0f56e0b3347ff2988068aecd0"
 
 [[projects]]
-  digest = "1:66b0292f815d508d11ed5fe94fdeb0bcc5a988703a08e73bf3cb3a415de676cf"
+  digest = "1:9634834683749eb75b7dffd7aa94b5b3d5560d355c1d664eb1e2724a3c382449"
   name = "k8s.io/apimachinery"
   packages = [
+    "pkg/api/equality",
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
+    "pkg/api/validation",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
+    "pkg/apis/meta/v1/validation",
     "pkg/apis/meta/v1beta1",
     "pkg/conversion",
     "pkg/conversion/queryparams",
@@ -395,8 +398,8 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = ""
-  revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
-  version = "kubernetes-1.13.1"
+  revision = "572dfc7bdfcb4531361a17d27b92851f59acf0dc"
+  version = "kubernetes-1.13.3"
 
 [[projects]]
   digest = "1:96ab89894f66b77a0137bba12e607c6a9be992acadfb075b5602939e8519a157"
@@ -563,7 +566,7 @@
   ]
   pruneopts = ""
   revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.13.3"
 
 [[projects]]
   digest = "1:ef304112ae16a07050b858a8e82ccfe9d9e0abc20aef1e55b6543b4b6df54eee"
@@ -610,12 +613,14 @@
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
+    "k8s.io/apimachinery/pkg/api/validation",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/runtime",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/watch",
@@ -623,10 +628,12 @@
     "k8s.io/client-go/discovery/fake",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/informers/apps/v1",
+    "k8s.io/client-go/informers/core/v1",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/listers/apps/v1",
+    "k8s.io/client-go/listers/core/v1",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",

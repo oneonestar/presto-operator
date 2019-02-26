@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
-	"k8s.io/kubernetes/pkg/apis/core/validation"
+	"k8s.io/apimachinery/pkg/api/validation"
 	"time"
 
 	"github.com/golang/glog"
@@ -132,6 +132,7 @@ func NewController(
 			controller.enqueuePresto(new)
 		},
 	})
+
 	// Set up an event handler for when ReplicaSet resources change. This
 	// handler will lookup the owner of the given ReplicaSet, and if it is
 	// owned by a Presto resource will enqueue that Presto resource for
@@ -146,6 +147,19 @@ func NewController(
 			if newRS.ResourceVersion == oldRS.ResourceVersion {
 				// Periodic resync will send update events for all known ReplicaSets.
 				// Two different versions of the same ReplicaSet will always have different RVs.
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+
+	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newService := new.(*Service)
+			oldService := old.(*Service)
+			if newService.ResourceVersion == oldService.ResourceVersion {
 				return
 			}
 			controller.handleObject(new)
@@ -230,6 +244,7 @@ func (c *Controller) processNextWorkItem() bool {
 		// Run the syncHandler, passing it the namespace/name string of the
 		// Presto resource to be synced.
 		if err := c.syncHandler(key); err != nil {
+			c.workqueue.AddRateLimited(key)
 			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
@@ -675,7 +690,7 @@ func newService(presto *prestov1alpha1.Presto) *Service {
 func getPodsPrefix(controllerName string) string {
 	// use the dash (if the name isn't too long) to make the pod name a bit prettier
 	prefix := fmt.Sprintf("%s-", controllerName)
-	if len(validation.ValidatePodName(prefix, true)) != 0 {
+	if len(validation.NameIsDNSSubdomain(prefix, true)) != 0 {
 		prefix = controllerName
 	}
 	return prefix
