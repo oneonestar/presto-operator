@@ -18,22 +18,26 @@ $ ./presto-controller -kubeconfig=<PATH_TO_YOUR_KUBECONFIG> -logtostderr -v 4
 ## Create a Presto CRD
 Create a CRD Definition in your K8S cluster.
 ```bash
-kubectl create -f artifacts/crd.yaml
+$ kubectl create -f artifacts/crd.yaml
 ```
 
 Create a Presto resource
 ```bash
-kubectl create -f artifacts/example1.yaml
+$ kubectl create -f artifacts/example1.yaml
 ```
 
 ## Example
 ```bash
+# Create a CRD Definition in your K8S cluster.
+$ kubectl create -f artifacts/crd.yaml
+
 # Create the configmaps for presto
 $ kubectl create configmap coordinator-config --from-file=coordinator_config
 $ kubectl create configmap worker-config --from-file=worker_config
 $ kubectl create configmap catalog --from-file=catalog
 
-# Specify the configmaps in CRD
+# Create a Presto CRD
+# Specify the configmaps in the Presto CRD
 $ cat artifacts/example1.yaml
 apiVersion: prestocontroller.prestosql.io/v1alpha1
 kind: Presto
@@ -71,7 +75,9 @@ star-presto-worker-9vv65-kcb27        1/1     Running   0          22s
 Setup the service account if you are using RBAC. Then create a presto-operator deployment. You may refer to `artifacts/operator.yaml`
 
 # Memo
-The Dockerfile in `docker/presto/` builds the Docker image of Presto being used by this project. The Dockerfile in `docker/` builds the Docker image of Presto-operator.
+The Dockerfile in `docker/presto/` builds the Docker image of Presto being used by this project.
+
+The Dockerfile in `docker/` builds the Docker image of Presto-operator.
 
 ```text
 Presto Resource = 
