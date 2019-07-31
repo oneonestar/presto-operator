@@ -653,7 +653,7 @@ func newReplicaSetWorker(presto *prestov1alpha1.PrestoCluster) *appsv1.ReplicaSe
 								PostStart: nil,
 								PreStop:   &Handler{
 									Exec: &ExecAction{
-										Command: []string{"curl https://gist.githubusercontent.com/oneonestar/ea75a608d58aa7e40cc952ad20e5a31a/raw/1a0a8591537b6005d4bc0b5ec2ff42db6b709664/presto_shutdown.sh | sh"},
+										Command: []string{"/bin/sh", "-c", "curl https://gist.githubusercontent.com/oneonestar/ea75a608d58aa7e40cc952ad20e5a31a/raw/1a0a8591537b6005d4bc0b5ec2ff42db6b709664/presto_shutdown.sh | sh"},
 										// TODO: Migrate to the following command after https://github.com/prestosql/presto/pull/1224 being merged
 										// Command: []string{"/bin/sh", "/usr/lib/presto/bin/stop-presto"},
 									},
