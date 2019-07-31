@@ -1,0 +1,30 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: prestoclusters.operator.prestosql.io
+spec:
+  group: operator.prestosql.io
+  version: v1alpha1
+  names:
+    kind: PrestoCluster
+    singular: prestocluster
+    plural: prestoclusters
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          properties:
+            workers:
+              type: integer
+              minimum: 1
+              maximum: 10
+  additionalPrinterColumns:
+    - name: DESIRED
+      type: integer
+      description: The desired number of worker nodes
+      JSONPath: .spec.workers
+    - name: CURRENT
+      type: integer
+      description: The current number of worker nodes
+      JSONPath: .status.availableWorkers

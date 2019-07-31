@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/oneonestar/presto-controller/pkg/client/informers/externalversions/internalinterfaces"
-	prestocontroller "github.com/oneonestar/presto-controller/pkg/client/informers/externalversions/prestocontroller"
+	versioned "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/oneonestar/presto-operator/pkg/client/informers/externalversions/internalinterfaces"
+	operator "github.com/oneonestar/presto-operator/pkg/client/informers/externalversions/operator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Prestocontroller() prestocontroller.Interface
+	Operator() operator.Interface
 }
 
-func (f *sharedInformerFactory) Prestocontroller() prestocontroller.Interface {
-	return prestocontroller.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Operator() operator.Interface {
+	return operator.New(f, f.namespace, f.tweakListOptions)
 }

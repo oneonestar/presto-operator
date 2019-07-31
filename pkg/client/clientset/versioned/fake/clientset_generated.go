@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned"
-	prestocontrollerv1alpha1 "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/typed/prestocontroller/v1alpha1"
-	fakeprestocontrollerv1alpha1 "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/typed/prestocontroller/v1alpha1/fake"
+	clientset "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned"
+	operatorv1alpha1 "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned/typed/operator/v1alpha1"
+	fakeoperatorv1alpha1 "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned/typed/operator/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -71,12 +71,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// PrestocontrollerV1alpha1 retrieves the PrestocontrollerV1alpha1Client
-func (c *Clientset) PrestocontrollerV1alpha1() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface {
-	return &fakeprestocontrollerv1alpha1.FakePrestocontrollerV1alpha1{Fake: &c.Fake}
+// OperatorV1alpha1 retrieves the OperatorV1alpha1Client
+func (c *Clientset) OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface {
+	return &fakeoperatorv1alpha1.FakeOperatorV1alpha1{Fake: &c.Fake}
 }
 
-// Prestocontroller retrieves the PrestocontrollerV1alpha1Client
-func (c *Clientset) Prestocontroller() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface {
-	return &fakeprestocontrollerv1alpha1.FakePrestocontrollerV1alpha1{Fake: &c.Fake}
+// Operator retrieves the OperatorV1alpha1Client
+func (c *Clientset) Operator() operatorv1alpha1.OperatorV1alpha1Interface {
+	return &fakeoperatorv1alpha1.FakeOperatorV1alpha1{Fake: &c.Fake}
 }

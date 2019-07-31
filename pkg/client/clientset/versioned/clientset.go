@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	prestocontrollerv1alpha1 "github.com/oneonestar/presto-controller/pkg/client/clientset/versioned/typed/prestocontroller/v1alpha1"
+	operatorv1alpha1 "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned/typed/operator/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -27,27 +27,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	PrestocontrollerV1alpha1() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface
+	OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Prestocontroller() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface
+	Operator() operatorv1alpha1.OperatorV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	prestocontrollerV1alpha1 *prestocontrollerv1alpha1.PrestocontrollerV1alpha1Client
+	operatorV1alpha1 *operatorv1alpha1.OperatorV1alpha1Client
 }
 
-// PrestocontrollerV1alpha1 retrieves the PrestocontrollerV1alpha1Client
-func (c *Clientset) PrestocontrollerV1alpha1() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface {
-	return c.prestocontrollerV1alpha1
+// OperatorV1alpha1 retrieves the OperatorV1alpha1Client
+func (c *Clientset) OperatorV1alpha1() operatorv1alpha1.OperatorV1alpha1Interface {
+	return c.operatorV1alpha1
 }
 
-// Deprecated: Prestocontroller retrieves the default version of PrestocontrollerClient.
+// Deprecated: Operator retrieves the default version of OperatorClient.
 // Please explicitly pick a version.
-func (c *Clientset) Prestocontroller() prestocontrollerv1alpha1.PrestocontrollerV1alpha1Interface {
-	return c.prestocontrollerV1alpha1
+func (c *Clientset) Operator() operatorv1alpha1.OperatorV1alpha1Interface {
+	return c.operatorV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -66,7 +66,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.prestocontrollerV1alpha1, err = prestocontrollerv1alpha1.NewForConfig(&configShallowCopy)
+	cs.operatorV1alpha1, err = operatorv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.prestocontrollerV1alpha1 = prestocontrollerv1alpha1.NewForConfigOrDie(c)
+	cs.operatorV1alpha1 = operatorv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.prestocontrollerV1alpha1 = prestocontrollerv1alpha1.New(c)
+	cs.operatorV1alpha1 = operatorv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

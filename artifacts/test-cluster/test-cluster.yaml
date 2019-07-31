@@ -1,0 +1,11 @@
+apiVersion: operator.prestosql.io/v1alpha1
+kind: PrestoCluster
+metadata:
+  name: presto-test-cluster
+spec:
+  name: presto-test-cluster
+  image: prestosql/presto:316
+  workers: 2
+  coordinatorConfig: coordinator-config
+  workerConfig: worker-config
+  catalogConfig: catalog

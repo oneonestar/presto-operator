@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: presto-operator
+  namespace: default
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: presto-operator
+rules:
+  - apiGroups: [""] # "" indicates the core API group
+    resources: ["services", "events"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["*"]
+  - apiGroups: ["operator.prestosql.io"]
+    resources: ["prestoclusters"]
+    verbs: ["*"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: presto-operator
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    namespace: default
+    name: presto-operator
+roleRef:
+  kind: ClusterRole
+  name: presto-operator
+  apiGroup: rbac.authorization.k8s.io
+#
+#---
+#
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: presto-operator
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      name: presto-operator
+#  template:
+#    metadata:
+#      labels:
+#        name: presto-operator
+#    spec:
+#      serviceAccountName: presto-operator
+#      containers:
+#        - name: presto-operator
+#          image: gcr.io/learn-227713/presto-operator:latest
+#          imagePullPolicy: Always
+#          command: [ "/bin/presto-operator", "-logtostderr", "-v", "4" ]
+##          args: [ "while true; do sleep 30; done;" ]
+#

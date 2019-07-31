@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/presto-controller.iml" filepath="$PROJECT_DIR$/.idea/presto-controller.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../presto-operator/.idea/presto-operator.iml" filepath="$PROJECT_DIR$/../presto-operator/.idea/presto-operator.iml" />
     </modules>
   </component>
 </project>
