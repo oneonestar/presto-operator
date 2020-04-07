@@ -18,11 +18,12 @@ package main
 
 import (
 	"fmt"
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog"
-	"time"
 
 	prestov1alpha1 "github.com/oneonestar/presto-operator/pkg/apis/operator/v1alpha1"
 	clientset "github.com/oneonestar/presto-operator/pkg/client/clientset/versioned"
@@ -136,7 +137,7 @@ func NewController(
 	// handling Deployment resources. More info on this pattern:
 	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
 	replicaSetInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    controller.handleObject,
+		AddFunc: controller.handleObject,
 		UpdateFunc: func(old, new interface{}) {
 			newDepl := new.(*appsv1.ReplicaSet)
 			oldDepl := old.(*appsv1.ReplicaSet)
@@ -151,7 +152,7 @@ func NewController(
 	})
 
 	serviceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    controller.handleObject,
+		AddFunc: controller.handleObject,
 		UpdateFunc: func(old, new interface{}) {
 			newDepl := new.(*Service)
 			oldDepl := old.(*Service)
@@ -583,6 +584,7 @@ func newReplicaSetCoordinator(presto *prestov1alpha1.PrestoCluster) *appsv1.Repl
 							},
 						},
 					},
+					Hostname: presto.Spec.Name,
 					Volumes: []Volume{
 						{
 							Name: "config",
@@ -651,7 +653,7 @@ func newReplicaSetWorker(presto *prestov1alpha1.PrestoCluster) *appsv1.ReplicaSe
 							},
 							Lifecycle: &Lifecycle{
 								PostStart: nil,
-								PreStop:   &Handler{
+								PreStop: &Handler{
 									Exec: &ExecAction{
 										Command: []string{"/bin/sh", "-c", "curl https://gist.githubusercontent.com/oneonestar/ea75a608d58aa7e40cc952ad20e5a31a/raw/1a0a8591537b6005d4bc0b5ec2ff42db6b709664/presto_shutdown.sh | sh"},
 										// TODO: Migrate to the following command after https://github.com/prestosql/presto/pull/1224 being merged
@@ -700,8 +702,8 @@ func newService(presto *prestov1alpha1.PrestoCluster) *Service {
 	}
 	return &Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: presto.Spec.Name,
-			Namespace:    presto.Namespace,
+			Name:      presto.Spec.Name,
+			Namespace: presto.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(presto, schema.GroupVersionKind{
 					Group:   prestov1alpha1.SchemeGroupVersion.Group,
